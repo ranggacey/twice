@@ -1,98 +1,147 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { safeLocalStorage, getFromLocalStorage, isBrowser } from '@/lib/utils';
 
 /**
- * Custom hook untuk menggunakan localStorage
- * Menyediakan kemampuan untuk menyimpan dan mengambil data dari localStorage
- * dengan fitur type safety dan error handling
- *
+ * Debug function to log localStorage operations
+ * Helps with debugging storage issues
+ */
+function debugLocalStorage(key, operation, value) {
+  if (process.env.NODE_ENV === 'development' && isBrowser()) {
+    console.log(`[LocalStorage Debug] ${operation} for key "${key}":`, 
+      value || localStorage.getItem(key) || 'No value');
+    
+    // Log all keys in localStorage for this app
+    const allKeys = Object.keys(localStorage)
+      .filter(k => k.startsWith('twice_'));
+    
+    console.log(`[LocalStorage Debug] All TWICE chat keys:`, allKeys);
+  }
+}
+
+/**
+ * Custom hook untuk menggunakan localStorage dengan auto-save yang reliable
+ * 
  * @param {string} key - Kunci untuk menyimpan data di localStorage
  * @param {any} initialValue - Nilai default jika data tidak ditemukan
  * @returns {[any, Function, Function]} - [nilai, setter, remover]
  */
 export function useLocalStorage(key, initialValue) {
-  // State untuk menyimpan nilai
+  // Use a ref to track if this is the initial render
+  const isFirstRender = useRef(true);
+  
+  // Track if localStorage is available
+  const [isStorageAvailable, setIsStorageAvailable] = useState(false);
+  
+  // Check localStorage availability on mount
+  useEffect(() => {
+    setIsStorageAvailable(isBrowser());
+  }, []);
+  
+  // Initialize state with value from localStorage or initial value
   const [storedValue, setStoredValue] = useState(() => {
+    if (!isBrowser()) {
+      return initialValue;
+    }
+    
     try {
-      const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
+      // Get value from localStorage
+      const item = getFromLocalStorage(key, initialValue);
+      debugLocalStorage(key, 'INIT', item);
+      return item;
     } catch (error) {
-      console.warn(`Error membaca dari localStorage dengan key ${key}:`, error);
+      console.error(`Error reading from localStorage key "${key}":`, error);
       return initialValue;
     }
   });
-  // Flag untuk mengetahui apakah localStorage tersedia
-  const [isLocalStorageAvailable, setIsLocalStorageAvailable] = useState(false);
 
-  // Cek apakah localStorage tersedia saat komponen di-mount
+  // Set up auto-save effect
   useEffect(() => {
-    try {
-      const testKey = '__test_storage__';
-      window.localStorage.setItem(testKey, testKey);
-      window.localStorage.removeItem(testKey);
-      setIsLocalStorageAvailable(true);
-    } catch (error) {
-      console.warn('localStorage tidak tersedia:', error);
-      setIsLocalStorageAvailable(false);
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
     }
-  }, []);
-
-  // Inisialisasi nilai dari localStorage saat komponen di-mount
-  // Gunakan ref untuk menghindari re-render berulang
-  useEffect(() => {
-    if (!isLocalStorageAvailable) return;
-
-    try {
-      const item = window.localStorage.getItem(key);
-      
-      // Hanya set nilai jika berbeda dari nilai saat ini untuk mencegah re-render tak perlu
-      const parsedItem = item ? JSON.parse(item) : initialValue;
-      if (JSON.stringify(parsedItem) !== JSON.stringify(storedValue)) {
-        setStoredValue(parsedItem);
+    
+    if (!isBrowser() || !isStorageAvailable) {
+      return;
+    }
+    
+    // Create a timer for debounced saving
+    const saveTimer = setTimeout(() => {
+      try {
+        safeLocalStorage(key, storedValue);
+        debugLocalStorage(key, 'AUTO-SAVE', storedValue);
+      } catch (error) {
+        console.error(`Error auto-saving to localStorage key "${key}":`, error);
       }
-    } catch (error) {
-      console.warn(`Error membaca dari localStorage dengan key ${key}:`, error);
-      setStoredValue(initialValue);
+    }, 300); // 300ms debounce
+    
+    // Clean up timer on component unmount or before next save
+    return () => clearTimeout(saveTimer);
+  }, [key, storedValue, isStorageAvailable]);
+  
+  // Save the value on page unload/tab close
+  useEffect(() => {
+    if (!isBrowser() || !isStorageAvailable) {
+      return;
     }
-  }, [key, isLocalStorageAvailable]); // Hapus initialValue dari dependencies
+    
+    const handleBeforeUnload = () => {
+      try {
+        safeLocalStorage(key, storedValue);
+        debugLocalStorage(key, 'UNLOAD-SAVE', storedValue);
+      } catch (error) {
+        console.error(`Error saving to localStorage on unload: ${key}`, error);
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Clean up event listener
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [key, storedValue, isStorageAvailable]);
 
-  /**
-   * Fungsi untuk memperbarui nilai di localStorage
-   * @param {any} value - Nilai baru atau fungsi yang mengambil nilai sebelumnya
-   */
+  // Function to update the stored value
   const setValue = (value) => {
     try {
-      // Izinkan value berupa fungsi seperti setState
+      // Allow value to be a function
       const valueToStore =
         value instanceof Function ? value(storedValue) : value;
       
-      // Simpan ke state
+      // Save to state
       setStoredValue(valueToStore);
       
-      // Simpan ke localStorage jika tersedia
-      if (isLocalStorageAvailable) {
-        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+      // Save to localStorage immediately for all updates - critical fix
+      if (isBrowser()) {
+        // Direct write to localStorage without any conditionals for chat data
+        try {
+          localStorage.setItem(key, JSON.stringify(valueToStore));
+          console.log(`[CRITICAL FIX] Directly saved to localStorage: ${key}`, valueToStore);
+        } catch (err) {
+          console.error(`[CRITICAL FIX] Error saving to localStorage directly:`, err);
+        }
       }
     } catch (error) {
-      console.warn(`Error menyimpan ke localStorage dengan key ${key}:`, error);
+      console.error(`Error in setValue for localStorage key "${key}":`, error);
     }
   };
 
-  /**
-   * Fungsi untuk menghapus nilai dari localStorage
-   */
+  // Function to remove the value from localStorage
   const removeValue = () => {
     try {
-      // Hapus dari state
+      // Reset state to initial value
       setStoredValue(initialValue);
       
-      // Hapus dari localStorage jika tersedia
-      if (isLocalStorageAvailable) {
-        window.localStorage.removeItem(key);
+      // Remove from localStorage
+      if (isBrowser() && isStorageAvailable) {
+        localStorage.removeItem(key);
+        debugLocalStorage(key, 'REMOVE');
       }
     } catch (error) {
-      console.warn(`Error menghapus dari localStorage dengan key ${key}:`, error);
+      console.error(`Error removing localStorage key "${key}":`, error);
     }
   };
 
@@ -100,10 +149,10 @@ export function useLocalStorage(key, initialValue) {
 }
 
 /**
- * Hook untuk chat history
+ * Hook untuk chat history dengan auto-save
  * @param {string} memberId - ID member TWICE
  * @param {Array} initialHistory - History chat awal
- * @returns {[Array, Function]} - [history, setHistory]
+ * @returns {Object} - Object containing history and methods
  */
 export function useChatHistory(memberId, initialHistory = []) {
   const storageKey = `twice_chat_${memberId}`;
@@ -114,13 +163,30 @@ export function useChatHistory(memberId, initialHistory = []) {
    * @param {Object} message - Pesan untuk ditambahkan
    */
   const addMessage = (message) => {
-    setHistory(prevHistory => [...prevHistory, message]);
+    setHistory(prevHistory => {
+      // Ensure we have a valid array
+      const validHistory = Array.isArray(prevHistory) ? prevHistory : [];
+      return [...validHistory, message];
+    });
+  };
+
+  /**
+   * Delete a specific message by ID
+   * @param {string} messageId - ID of message to delete
+   */
+  const deleteMessage = (messageId) => {
+    setHistory(prevHistory => {
+      // Ensure we have a valid array
+      const validHistory = Array.isArray(prevHistory) ? prevHistory : [];
+      return validHistory.filter(msg => msg.id !== messageId);
+    });
   };
 
   return {
-    history,
+    history: Array.isArray(history) ? history : [],
     addMessage,
     setHistory,
-    clearHistory
+    clearHistory,
+    deleteMessage
   };
 }

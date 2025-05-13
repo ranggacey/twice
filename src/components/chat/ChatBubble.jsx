@@ -15,10 +15,10 @@ import { MEMBER_COLORS } from '@/lib/constants';
  * @param {boolean} props.isLoading - Whether the message is in loading state
  */
 const ChatBubble = ({ 
-  sender, 
-  text, 
-  timestamp, 
-  imageUrl, 
+  sender = 'user', 
+  text = '', 
+  timestamp = '', 
+  imageUrl = null, 
   isLoading = false 
 }) => {
   const isUser = sender === 'user';
@@ -48,7 +48,7 @@ const ChatBubble = ({
               className="h-full w-full flex items-center justify-center text-white"
               style={{ backgroundColor: MEMBER_COLORS[sender] || '#ccc' }}
             >
-              {sender.charAt(0).toUpperCase()}
+              {(sender || '').charAt(0).toUpperCase()}
             </div>
           )}
         </div>
@@ -64,12 +64,12 @@ const ChatBubble = ({
             })
           }}
         >
-          <p className="text-sm sm:text-base whitespace-pre-wrap break-words">{text}</p>
+          <p className="text-sm sm:text-base whitespace-pre-wrap break-words">{text || ''}</p>
         </div>
         
         {/* Timestamp */}
         <div className="text-xs text-gray-500 mt-1 px-1">
-          {timestamp}
+          {timestamp || ''}
         </div>
       </div>
     </div>

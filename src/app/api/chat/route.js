@@ -81,13 +81,23 @@ const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
       const response = result.response.text();
       console.log('Response dari AI:', { responseLength: response.length });
 
+      // Safety check for response
+      if (!response || response.length === 0) {
+        console.error('Empty response from AI:', result);
+        return NextResponse.json(
+          { error: 'Empty response from AI' },
+          { status: 500 }
+        );
+      }
+
       // Deteksi apakah respons perlu menyertakan gambar
       const needsImage = shouldIncludeImage(message, response);
 
-      // Kembalikan respons
+      // Kembalikan respons yang valid
       return NextResponse.json({ 
         response, 
-        needsImage
+        needsImage,
+        timestamp: new Date().toISOString()
       });
     } catch (apiError) {
       console.error('Gemini API error:', {

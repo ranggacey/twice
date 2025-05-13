@@ -10,7 +10,11 @@ import React, { useState, useRef } from 'react';
  * @param {boolean} props.isLoading - Whether currently waiting for a response
  * @param {string} props.accentColor - Accent color for the input styling
  */
-const ChatInput = ({ onSendMessage, isLoading = false, accentColor = '#a970ff' }) => {
+const ChatInput = ({ 
+  onSendMessage, 
+  isLoading = false, 
+  accentColor = '#a970ff'
+}) => {
   const [message, setMessage] = useState('');
   const inputRef = useRef(null);
 

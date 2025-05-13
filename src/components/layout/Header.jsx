@@ -93,7 +93,7 @@ const Header = () => {
           
           {/* GitHub link */}
           <a 
-            href="https://github.com/your-username/chat_twice"
+            href="https://github.com/ranggacey"
             target="_blank"
             rel="noopener noreferrer"
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
