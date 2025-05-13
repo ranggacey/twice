@@ -8,10 +8,10 @@
  * (Nilai sebenarnya diambil dari environment variables)
  */
 export const API_CONFIG = {
-  GEMINI_API_KEY: process.env.NEXT_PUBLIC_GEMINI_API_KEY || 'AIzaSyDbkf34IgYYB1drKs_npOjGuBn60VUt3HM',
-  GOOGLE_SEARCH_API_KEY: process.env.GOOGLE_CUSTOM_SEARCH_API_KEY,
-  GOOGLE_SEARCH_ENGINE_ID: process.env.GOOGLE_SEARCH_ENGINE_ID,
-  GEMINI_MODEL: 'gemini-1.0-pro',
+  GEMINI_API_KEY: process.env.NEXT_PUBLIC_GEMINI_API_KEY || 'AIzaSyDLJJqUeecYYMPuLXkrUQWUhl78cSmoANg',
+  GOOGLE_SEARCH_API_KEY: process.env.GOOGLE_CUSTOM_SEARCH_API_KEY || 'AIzaSyDztk8XxicENqFkUJFI45K3LY0Fwy-yXVo',
+  GOOGLE_SEARCH_ENGINE_ID: process.env.GOOGLE_SEARCH_ENGINE_ID || 'e13c0b9e69a6c4ffa',
+  GEMINI_MODEL: 'gemini-1.5-flash',
 };
 
 /**

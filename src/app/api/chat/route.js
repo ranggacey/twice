@@ -40,6 +40,7 @@ export async function POST(request) {
       const result = await genAI.generateContent({
         contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
         generationConfig: {
+          model: API_CONFIG.GEMINI_MODEL,
           temperature: temperature,
           maxOutputTokens: 500,
           topK: 40,
