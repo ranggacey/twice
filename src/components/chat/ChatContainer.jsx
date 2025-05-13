@@ -21,6 +21,8 @@ const ChatContainer = ({ memberId }) => {
   const [typingMessage, setTypingMessage] = useState('');
   const [attachedImage, setAttachedImage] = useState(null);
   const messagesEndRef = useRef(null);
+  const [mounted, setMounted] = useState(false);
+  const [pendingUserMessage, setPendingUserMessage] = useState(null);
 
   // Scroll to bottom when messages change - buat referensi stabil untuk history
   // untuk mencegah infinite loop
@@ -31,26 +33,24 @@ const ChatContainer = ({ memberId }) => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
+    
+    setMounted(true);
   }, [historyLength, hasTyping]); // Gunakan nilai primitif
 
   // Function to handle sending a message
   const handleSendMessage = async (text) => {
     if (!text.trim() || isLoading) return;
-    
-    // Add user message to history
     const userMessage = {
       id: Date.now().toString(),
       sender: 'user',
       text,
       timestamp: new Date().toISOString(),
     };
-    
+    setPendingUserMessage(userMessage);
     addMessage(userMessage);
     setIsLoading(true);
     setTypingMessage('');
-
     try {
-      // Call API to get response
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -59,33 +59,25 @@ const ChatContainer = ({ memberId }) => {
         body: JSON.stringify({
           memberId,
           message: text,
-          history: history.slice(-10).map(msg => ({
+          history: [...history.slice(-10), { text: text, sender: 'user' }].map(msg => ({
             text: msg.text,
             sender: msg.sender
           })),
         }),
       });
-      
       let result;
-      
       try {
-        // Parse JSON response
         result = await response.json();
       } catch (parseError) {
         console.error('Error parsing JSON response:', parseError);
         throw new Error('Format respon tidak valid');
       }
-      
-      // Handle error responses
       if (!response.ok) {
         console.error('API error:', result);
         throw new Error(result.error || result.message || 'Error in chat API');
       }
-      
-      // Check if we need to attach an image
       if (result.needsImage) {
         try {
-          // Ambil gambar dari API search-image
           const imageResponse = await fetch('/api/search-image', {
             method: 'POST',
             headers: {
@@ -96,7 +88,6 @@ const ChatContainer = ({ memberId }) => {
               context: determineImageContext(text, result.response),
             }),
           });
-          
           if (imageResponse.ok) {
             const imageData = await imageResponse.json();
             setAttachedImage(imageData.imageUrl);
@@ -111,46 +102,36 @@ const ChatContainer = ({ memberId }) => {
       } else {
         setAttachedImage(null);
       }
-      
-      // Add member's response to history
       const memberMessage = {
         id: (Date.now() + 1).toString(),
         sender: memberId,
         text: result.response,
         timestamp: new Date().toISOString(),
       };
-      
-      // Simulate typing with a brief delay
-      const typingSpeed = 20; // ms per character
-      const minDelay = 500; // minimum delay
+      const typingSpeed = 20;
+      const minDelay = 500;
       const typingTime = Math.max(minDelay, result.response.length * typingSpeed);
-      
-      // Set typing indicator with progressive text
       let charIndex = 0;
       const typingInterval = setInterval(() => {
-        charIndex += 1 + Math.floor(Math.random() * 3); // Random speed for natural typing
+        charIndex += 1 + Math.floor(Math.random() * 3);
         if (charIndex >= result.response.length) {
           clearInterval(typingInterval);
           setTypingMessage('');
           addMessage(memberMessage);
           setIsLoading(false);
+          setPendingUserMessage(null);
         } else {
           setTypingMessage(result.response.substring(0, charIndex));
         }
       }, 50);
-      
     } catch (error) {
       console.error('Error sending message:', error);
-      
-      // Provide more informative error message
       let errorMessage = 'Maaf, ada kesalahan saat memproses pesan.';
-      
       if (error.message.includes('API key')) {
         errorMessage = 'Maaf, API key belum dikonfigurasi. Silakan cek file .env.local';
       } else if (error.message.includes('Failed to fetch') || error.message.includes('network')) {
         errorMessage = 'Terjadi masalah koneksi. Pastikan kamu terhubung ke internet.';
       }
-      
       addMessage({
         id: (Date.now() + 1).toString(),
         sender: memberId,
@@ -158,13 +139,16 @@ const ChatContainer = ({ memberId }) => {
         timestamp: new Date().toISOString(),
       });
       setIsLoading(false);
+      setPendingUserMessage(null);
     }
   };
 
   // Handle clearing chat history
   const handleClearChat = () => {
-    if (window.confirm('Yakin ingin menghapus semua riwayat chat?')) {
-      clearHistory();
+    if (window.confirm('Yakin ingin menghapus semua pesan yang kamu kirim?')) {
+      // Hanya hapus pesan yang dikirim oleh user
+      const filteredHistory = history.filter(msg => msg.sender !== 'user');
+      setHistory(filteredHistory);
     }
   };
 
@@ -232,8 +216,14 @@ const ChatContainer = ({ memberId }) => {
               attachedImageUrl={message.sender === memberId ? attachedImage : null}
             />
           ))}
-          
-          {/* Typing indicator */}
+          {pendingUserMessage && (
+            <ChatMessage 
+              key={pendingUserMessage.id}
+              message={pendingUserMessage}
+              memberImageUrl={member.imageUrl}
+              attachedImageUrl={null}
+            />
+          )}
           {typingMessage && (
             <ChatMessage 
               message={{ sender: memberId, text: typingMessage }}
@@ -241,8 +231,6 @@ const ChatContainer = ({ memberId }) => {
               memberImageUrl={member.imageUrl}
             />
           )}
-          
-          {/* Invisible element to scroll to */}
           <div ref={messagesEndRef} />
         </div>
       </div>

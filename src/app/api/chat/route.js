@@ -10,16 +10,36 @@ import { API_CONFIG } from '@/lib/constants';
 export async function POST(request) {
   try {
     // Parse request body
-    const { message, memberId, history = [] } = await request.json();
+    let message, memberId, history;
+try {
+  const body = await request.json();
+  message = body.message;
+  memberId = body.memberId;
+  history = body.history || [];
+} catch (jsonError) {
+  console.error('Error parsing JSON:', jsonError);
+  return NextResponse.json(
+    { error: 'Format JSON tidak valid' },
+    { status: 400 }
+  );
+}
     console.log('Request diterima:', { 
       message, 
       memberId,
       historyLength: history?.length 
     });
     
-    if (!memberId) {
+    if (!memberId || !message) {
       return NextResponse.json(
-        { error: 'Member ID harus disediakan' },
+        { error: 'Member ID dan pesan harus disediakan' },
+        { status: 400 }
+      );
+    }
+
+    // Validasi panjang pesan
+    if (message.length > 500) {
+      return NextResponse.json(
+        { error: 'Pesan tidak boleh lebih dari 500 karakter' },
         { status: 400 }
       );
     }
@@ -30,23 +50,33 @@ export async function POST(request) {
     
     try {
       // Inisialisasi Gemini API
-      const genAI = new GoogleGenerativeAI(API_CONFIG.GEMINI_API_KEY);
+      if (!API_CONFIG.GEMINI_API_KEY) {
+  console.error('API key tidak ditemukan');
+  return NextResponse.json(
+    { error: 'Konfigurasi API tidak valid' },
+    { status: 500 }
+  );
+}
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyDbkf34IgYYB1drKs_npOjGuBn60VUt3HM');
       
       // Persiapkan prompt untuk AI
       const fullPrompt = `${systemPrompt}\n\nUser: ${message}`;
       
       // Sebagai alternatif untuk model.startChat yang bisa error dengan history
       // kita gunakan generateContent langsung
-      const result = await genAI.generateContent({
-        contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
-        generationConfig: {
-          model: API_CONFIG.GEMINI_MODEL,
-          temperature: temperature,
-          maxOutputTokens: 500,
-          topK: 40,
-          topP: 0.8,
-        },
-      });
+      if (!message || !memberId) {
+  return NextResponse.json(
+    { error: 'Pesan atau Member ID tidak boleh kosong' },
+    { status: 400 }
+  );
+}
+const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const chat = model.startChat({
+      generationConfig: {
+        maxOutputTokens: 300,
+      },
+    });
+    const result = await chat.sendMessage(fullPrompt);
       
       const response = result.response.text();
       console.log('Response dari AI:', { responseLength: response.length });
@@ -60,14 +90,19 @@ export async function POST(request) {
         needsImage
       });
     } catch (apiError) {
-      console.error('Gemini API error:', apiError);
-      return NextResponse.json(
-        { 
-          error: 'Error interaksi dengan AI', 
-          message: apiError.message || 'Gagal mendapatkan respons dari Gemini API'
-        },
-        { status: 500 }
-      );
+      console.error('Gemini API error:', {
+      message: apiError.message,
+      stack: apiError.stack,
+      request: { memberId, message }
+    });
+    return NextResponse.json(
+      { 
+        error: 'Error interaksi dengan AI', 
+        message: apiError.message || 'Gagal mendapatkan respons dari Gemini API',
+        details: 'Silakan coba lagi dalam beberapa menit atau hubungi support'
+      },
+      { status: 500 }
+    );
     }
   } catch (error) {
     console.error('Error dalam API chat:', error);

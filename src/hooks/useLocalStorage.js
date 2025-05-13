@@ -13,7 +13,15 @@ import { useState, useEffect } from 'react';
  */
 export function useLocalStorage(key, initialValue) {
   // State untuk menyimpan nilai
-  const [storedValue, setStoredValue] = useState(initialValue);
+  const [storedValue, setStoredValue] = useState(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      console.warn(`Error membaca dari localStorage dengan key ${key}:`, error);
+      return initialValue;
+    }
+  });
   // Flag untuk mengetahui apakah localStorage tersedia
   const [isLocalStorageAvailable, setIsLocalStorageAvailable] = useState(false);
 

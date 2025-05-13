@@ -39,9 +39,14 @@ const TOPIC_SUGGESTIONS = {
 const ChatTopicSuggestion = ({ onSelectTopic, memberName }) => {
   const allCategories = Object.keys(TOPIC_SUGGESTIONS);
   // Pick 2 random categories
-  const randomCategories = allCategories
-    .sort(() => 0.5 - Math.random())
-    .slice(0, 2);
+  const [randomCategories, setRandomCategories] = React.useState([]);
+
+  React.useEffect(() => {
+    const categories = allCategories
+      .sort(() => 0.5 - Math.random())
+      .slice(0, 2);
+    setRandomCategories(categories);
+  }, []);
   
   return (
     <div className="mt-6 mb-4">
@@ -72,4 +77,4 @@ const ChatTopicSuggestion = ({ onSelectTopic, memberName }) => {
   );
 };
 
-export default ChatTopicSuggestion; 
+export default ChatTopicSuggestion;
