@@ -1,112 +1,212 @@
-'use client';
+"use client"
 
-import React, { useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { membersData } from '@/lib/memberData';
-import { ROUTES } from '@/lib/constants';
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import Image from "next/image"
+import { Search, Plus, Camera, MoreVertical, Check, CheckCheck } from "lucide-react"
+import { format } from "date-fns"
+import { getAllMembers } from "@/lib/member-data"
 
 export default function Home() {
-  const [hoveredMember, setHoveredMember] = useState(null);
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [members, setMembers] = useState([])
+  const [searchQuery, setSearchQuery] = useState("")
+  const [filteredMembers, setFilteredMembers] = useState([])
+
+  const activeMember = searchParams.get("member")
+
+  useEffect(() => {
+    // Get all members
+    const allMembers = getAllMembers()
+
+    // Add last message and time from localStorage
+    const membersWithChat = allMembers.map((member) => {
+      const savedMessages = localStorage.getItem(`chat-${member.id}`)
+      let lastMessage = null
+      let lastMessageTime = null
+
+      if (savedMessages) {
+        const messages = JSON.parse(savedMessages)
+        if (messages.length > 0) {
+          lastMessage = messages[messages.length - 1]
+          lastMessageTime = lastMessage.timestamp
+        }
+      }
+
+      return {
+        ...member,
+        lastMessage,
+        lastMessageTime,
+      }
+    })
+
+    setMembers(membersWithChat)
+    setFilteredMembers(membersWithChat)
+
+    // If a member is selected in the URL, navigate to their chat
+    if (activeMember) {
+      router.push(`/chat/${activeMember}`)
+    }
+  }, [activeMember, router])
+
+  // Filter members based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredMembers(members)
+    } else {
+      const filtered = members.filter((member) => member.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      setFilteredMembers(filtered)
+    }
+  }, [searchQuery, members])
+
+  const formatTime = (timestamp) => {
+    if (!timestamp) return ""
+
+    const date = new Date(timestamp)
+    const today = new Date()
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+
+    if (date.toDateString() === today.toDateString()) {
+      return format(date, "HH:mm")
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return "Yesterday"
+    } else {
+      return format(date, "dd/MM/yyyy")
+    }
+  }
+
+  const truncateText = (text, maxLength = 40) => {
+    if (!text) return ""
+    if (text.length <= maxLength) return text
+    return text.substring(0, maxLength) + "..."
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <header className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold mb-3 text-gray-900 dark:text-white">
-            Chat with <span className="text-pink-500">TWICE</span>
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
+        <div className="flex justify-between items-center p-4 max-w-4xl mx-auto">
+          <h1 className="text-xl font-bold text-gray-900">
+            TWICE Chat
           </h1>
-          <p className="text-gray-600 dark:text-gray-300 max-w-xl mx-auto">
-            Pilih member TWICE yang ingin kamu ajak chat. Aplikasi ini menggunakan AI untuk mensimulasikan percakapan dengan member TWICE berdasarkan kepribadian mereka.
-          </p>
-        </header>
+          <div className="flex gap-2">
+            <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+              <Camera className="h-5 w-5 text-gray-600" />
+            </button>
+            <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+              <Search className="h-5 w-5 text-gray-600" />
+            </button>
+            <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+              <MoreVertical className="h-5 w-5 text-gray-600" />
+            </button>
+          </div>
+        </div>
+      </div>
 
-        {/* Members Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-          {membersData.map((member) => (
-            <Link 
-              href={ROUTES.MEMBER_CHAT(member.id)} 
+      {/* Search Bar */}
+      <div className="p-3 sticky top-16 z-10 bg-white border-b border-gray-200">
+        <div className="bg-gray-100 rounded-full flex items-center px-4 py-2 max-w-4xl mx-auto">
+          <Search className="h-5 w-5 text-gray-600 mr-3" />
+          <input
+            type="text"
+            placeholder="Search members..."
+            className="flex-1 py-1 border-none focus:outline-none text-gray-800 bg-transparent placeholder-gray-500"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Member List */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto">
+          {filteredMembers.map((member) => (
+            <div
               key={member.id}
-              className="block"
-              onMouseEnter={() => setHoveredMember(member.id)}
-              onMouseLeave={() => setHoveredMember(null)}
+              className="border-b border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer"
+              onClick={() => router.push(`/chat/${member.id}`)}
             >
-              <div 
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden transition-transform duration-300 h-full hover:-translate-y-2"
-                style={{ borderTop: `4px solid ${member.color}` }}
-              >
-                {/* Member Image */}
-                <div className="relative w-full h-60 sm:h-72">
-                  {member.imageUrl ? (
+              <div className="flex items-center p-4">
+                <div className="relative">
+                  <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-gray-200">
                     <Image
-                      src={member.imageUrl}
+                      src={`/images/${member.id}.png`}
                       alt={member.name}
-                      fill
+                      width={56}
+                      height={56}
                       className="object-cover"
-                      priority={member.id === 'nayeon' || member.id === 'tzuyu'}
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none"
+                        e.currentTarget.parentElement.innerHTML = `<div class="w-14 h-14 rounded-full bg-gray-300 flex items-center justify-center text-white text-lg font-medium">${member.name[0]}</div>`
+                      }}
                     />
-                  ) : (
-                    <div 
-                      className="w-full h-full flex items-center justify-center text-white text-4xl font-bold"
-                      style={{ backgroundColor: member.color }}
-                    >
-                      {member.name.charAt(0)}
-                    </div>
-                  )}
-                  
-                  {/* Hover Overlay */}
-                  <div 
-                    className={`absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 transition-opacity duration-300 ${
-                      hoveredMember === member.id ? 'opacity-100' : 'opacity-0'
-                    }`}
-                  >
-                    <div className="px-4 py-2 bg-white dark:bg-gray-800 rounded-full text-sm font-medium">
-                      Chat now {member.emoji}
-                    </div>
                   </div>
+                  <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-white"></div>
                 </div>
-                
-                {/* Member Info */}
-                <div className="p-4">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    {member.name} 
-                    <span className="text-sm bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded">
-                      {member.mbti}
-                    </span>
-                  </h2>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">{member.position}</p>
-                  
-                  {/* Personality Traits Preview */}
-                  <div className="mt-3 flex flex-wrap gap-1">
-                    {member.personality.traits.slice(0, 2).map((trait, index) => (
-                      <span 
-                        key={index} 
-                        className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
-                      >
-                        {trait}
-                      </span>
-                    ))}
-                    {member.personality.traits.length > 2 && (
-                      <span className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                        +{member.personality.traits.length - 2}
-                      </span>
-                    )}
+
+                <div className="ml-4 flex-1">
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-900">{member.name}</span>
+                    <span className="text-xs text-gray-600">{formatTime(member.lastMessageTime)}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center mt-1">
+                    <div className="text-sm text-gray-700 truncate max-w-[70%]">
+                      {member.lastMessage ? (
+                        member.lastMessage.sender === "user" ? (
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 mr-1">
+                              {member.lastMessage.status === "sent" && <Check className="h-3 w-3" />}
+                              {member.lastMessage.status === "delivered" && <CheckCheck className="h-3 w-3" />}
+                              {member.lastMessage.status === "read" && <CheckCheck className="h-3 w-3 text-blue-500" />}
+                            </div>
+                            {truncateText(member.lastMessage.text)}
+                          </div>
+                        ) : (
+                          truncateText(member.lastMessage.text)
+                        )
+                      ) : (
+                        <span className="italic text-gray-600">Start chatting</span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center">
+                      {member.relationshipType === "romantic" ? (
+                        <div className="bg-pink-500 text-white text-xs px-2.5 py-0.5 rounded-full font-medium">
+                          Romantic
+                        </div>
+                      ) : (
+                        <div className="bg-blue-500 text-white text-xs px-2.5 py-0.5 rounded-full font-medium">
+                          Fan
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </Link>
+            </div>
           ))}
+
+          {filteredMembers.length === 0 && (
+            <div className="p-12 text-center">
+              <div className="mx-auto w-16 h-16 mb-4 rounded-full bg-gray-200 flex items-center justify-center">
+                <Search className="h-6 w-6 text-gray-600" />
+              </div>
+              <p className="font-medium text-gray-900">No results found</p>
+              <p className="text-sm mt-2 text-gray-700">No members found matching "{searchQuery}"</p>
+            </div>
+          )}
         </div>
-        
-        {/* Footer */}
-        <footer className="mt-16 text-center text-sm text-gray-500 dark:text-gray-400">
-          <p>Powered by Next.js, Tailwind CSS, and Gemini API</p>
-          <p className="mt-1">
-            Made with 💖 for ONCEs
-          </p>
-        </footer>
+      </div>
+
+      {/* New Chat Button */}
+      <div className="fixed bottom-6 right-6">
+        <button className="bg-primary text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-shadow">
+          <Plus className="h-6 w-6" />
+        </button>
       </div>
     </div>
-  );
+  )
 }

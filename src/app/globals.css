@@ -1,110 +1,99 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-  
-  /* TWICE Member Colors */
-  --color-nayeon: #A2D4F2;  /* Sky Blue */
-  --color-jeongyeon: #9ACD32; /* Yellow-Green */
-  --color-momo: #FFC0CB; /* Pink */
-  --color-sana: #C8A2C8; /* Light Purple */
-  --color-jihyo: #FFA07A; /* Light Salmon */
-  --color-mina: #98FB98; /* Pale Green */
-  --color-dahyun: #F0E68C; /* Khaki */
-  --color-chaeyoung: #FF8C00; /* Dark Orange */
-  --color-tzuyu: #87CEEB; /* Sky Blue */
+    /* Better contrast colors */
+    --primary: 339 85% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 300 75% 60%;
+    --secondary-foreground: 0 0% 100%;
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 339 85% 55%;
+    --radius: 0.5rem;
+
+    /* TWICE member colors */
+    --nayeon: #A2D4F2;
+    --jeongyeon: #9ACD32;
+    --momo: #FFC0CB;
+    --sana: #C8A2C8;
+    --jihyo: #FFA07A;
+    --mina: #98FB98;
+    --dahyun: #F0E68C;
+    --chaeyoung: #FF8C00;
+    --tzuyu: #87CEEB;
+    
+    /* App specific colors */
+    --primary-600: #E91E63;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
-  font-family: var(--font-geist-sans, ui-sans-serif, system-ui, sans-serif);
-  min-height: 100vh;
+/* Animation utilities */
+.animate-in {
+  animation-delay: 0s;
+  animation-fill-mode: both;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+.fade-in {
+  animation: fade-in 0.3s ease-in-out;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+.slide-in-from-top-5 {
+  animation: slide-in-from-top 0.3s ease-out;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-
-/* Message animations */
-@keyframes messageIn {
+@keyframes fade-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes slide-in-from-top {
+  from {
+    transform: translateY(-0.5rem);
+  }
+  to {
     transform: translateY(0);
   }
 }
 
-.message-in {
-  animation: messageIn 0.3s ease-out;
+/* Screenshot mode styles */
+.screenshot-mode {
+  background-color: #ffffff !important;
+  background-image: none !important;
 }
 
-/* Fade in animation */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+/* Glassmorphism effects */
+.backdrop-blur-md {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-out;
-}
-
-/* Fade in up animation */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in-up {
-  animation: fadeInUp 0.3s ease-out;
-}
-
-/* Loading animations */
-@keyframes typing {
-  0% { opacity: 0.3; }
-  50% { opacity: 1; }
-  100% { opacity: 0.3; }
+.backdrop-blur-sm {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
