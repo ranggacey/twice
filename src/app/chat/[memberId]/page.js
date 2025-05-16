@@ -360,8 +360,11 @@ export default function ChatPage({ params }) {
                   height={40}
                   className="object-cover"
                   onError={(e) => {
-                    e.currentTarget.style.display = "none"
-                    e.currentTarget.parentElement.innerHTML = `<div class="w-10 h-10 rounded-full bg-gradient-to-br ${member.themeColor} flex items-center justify-center text-white font-medium">${member.name[0]}</div>`
+                    e.currentTarget.style.display = "none";
+                    const fallbackDiv = document.createElement("div");
+                    fallbackDiv.className = `w-10 h-10 rounded-full bg-gradient-to-br ${member.themeColor} flex items-center justify-center text-white font-medium`;
+                    fallbackDiv.textContent = member.name[0];
+                    e.currentTarget.parentElement.appendChild(fallbackDiv);
                   }}
                 />
                 <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-500 ring-2 ring-white"></div>
@@ -507,7 +510,7 @@ export default function ChatPage({ params }) {
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               placeholder="Type a message..."
-              className="w-full py-2.5 px-4 rounded-full bg-pink-300 focus:outline-none focus:ring-2 focus:ring-primary/70 transition-all"
+              className="w-full py-2.5 px-4 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/70 transition-all"
               disabled={isLoading}
             />
           </div>

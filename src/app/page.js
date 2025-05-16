@@ -138,8 +138,11 @@ export default function Home() {
                       height={56}
                       className="object-cover"
                       onError={(e) => {
-                        e.currentTarget.style.display = "none"
-                        e.currentTarget.parentElement.innerHTML = `<div class="w-14 h-14 rounded-full bg-gray-300 flex items-center justify-center text-white text-lg font-medium">${member.name[0]}</div>`
+                        e.currentTarget.style.display = "none";
+                        const fallbackDiv = document.createElement("div");
+                        fallbackDiv.className = "w-14 h-14 rounded-full bg-gray-300 flex items-center justify-center text-white text-lg font-medium";
+                        fallbackDiv.textContent = member.name[0];
+                        e.currentTarget.parentElement.appendChild(fallbackDiv);
                       }}
                     />
                   </div>
@@ -195,7 +198,7 @@ export default function Home() {
                 <Search className="h-6 w-6 text-gray-600" />
               </div>
               <p className="font-medium text-gray-900">No results found</p>
-              <p className="text-sm mt-2 text-gray-700">No members found matching "{searchQuery}"</p>
+              <p className="text-sm mt-2 text-gray-700">No members found matching &quot;{searchQuery}&quot;</p>
             </div>
           )}
         </div>
