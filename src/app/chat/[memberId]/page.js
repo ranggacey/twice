@@ -522,7 +522,7 @@ export default function ChatPage({ params }) {
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               placeholder="Type a message..."
-              className="w-full py-2.5 px-4 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/70 transition-all"
+              className="w-full py-2.5 px-4 rounded-full bg-pink-400 focus:outline-none focus:ring-2 focus:ring-primary/70 transition-all"
               disabled={isLoading}
             />
           </div>
