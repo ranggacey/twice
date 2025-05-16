@@ -362,7 +362,19 @@ export default function ChatPage({ params }) {
                   onError={(e) => {
                     e.currentTarget.style.display = "none";
                     const fallbackDiv = document.createElement("div");
-                    fallbackDiv.className = `w-10 h-10 rounded-full bg-gradient-to-br ${member.themeColor} flex items-center justify-center text-white font-medium`;
+                    const classNames = [
+                      "w-10", 
+                      "h-10", 
+                      "rounded-full", 
+                      "bg-gradient-to-br",
+                      member.themeColor,
+                      "flex",
+                      "items-center",
+                      "justify-center",
+                      "text-white",
+                      "font-medium"
+                    ];
+                    fallbackDiv.className = classNames.join(" ");
                     fallbackDiv.textContent = member.name[0];
                     e.currentTarget.parentElement.appendChild(fallbackDiv);
                   }}
