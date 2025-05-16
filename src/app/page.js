@@ -111,7 +111,7 @@ export default function Home() {
           <Search className="h-5 w-5 text-gray-600 mr-3" />
           <input
             type="text"
-            placeholder="Search members..."
+            placeholder="Search members.."
             className="flex-1 py-1 border-none focus:outline-none text-gray-800 bg-transparent placeholder-gray-500"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
